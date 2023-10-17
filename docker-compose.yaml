@@ -1,0 +1,63 @@
+version: '3.9'
+
+services:
+
+  postgres:
+    container_name: postgres
+    image: postgres
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./db/:/var/lib/postgresql/data
+    healthcheck:
+      test: "psql -U ${POSTGRES_USER} -d ${DB_NAME}"
+      timeout: 10s
+      retries: 20
+    command: [
+    "postgres",
+    "-c", "log_destination=stderr",
+    "-c", "logging_collector=on",
+    "-c", "log_filename=postgresql.log",
+    "-c", "log_directory=/var/log/postgresql"
+    ]
+
+  app:
+    container_name: app
+    build: .
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${DB_NAME}
+    volumes:
+      - ./app:/usr/share/app
+    command:  bash -c "alembic upgrade head && python3 -m create_users && cd .. && python3 -m main"
+    ports:
+      - 8000:8000
+    healthcheck:
+      test: bash -c "echo successfully"
+      interval: 1s
+      retries: 20
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  nginx:
+    image: nginx
+    container_name: nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/static:/usr/share/nginx/html/static
+    ports:
+      - "80:80"
+    depends_on:
+      app:
+        condition: service_healthy
