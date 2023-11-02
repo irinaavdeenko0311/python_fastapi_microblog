@@ -4,7 +4,7 @@
 ![img.png](app/static/images/img.png)
 
 - [x] **Прокси-сервер: Nginx**
-- [x] **Сервер: FastAPI**
+- [x] **API: FastAPI**
 - [x] **База данных: PostgreSQL**
 
 <br>
